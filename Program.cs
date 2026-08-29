@@ -89,10 +89,7 @@ public sealed class MainForm : Form
         var split = new SplitContainer {
             Dock=DockStyle.Fill,
             Orientation=Orientation.Vertical,
-            SplitterDistance=980,
             IsSplitterFixed=false,
-            Panel1MinSize=780,
-            Panel2MinSize=320,
             Padding=new Padding(10)
         };
 
@@ -202,6 +199,36 @@ public sealed class MainForm : Form
 
         split.Panel2.Controls.Add(right);
         Controls.Add(split); Controls.Add(header);
+
+        void SetSafeSplitterDistance()
+        {
+            if (split.ClientSize.Width <= 0) return;
+
+            // Set the minimum sizes only after WinForms has laid out the control.
+            // Doing this in the constructor can throw because ClientSize.Width is
+            // still zero and SplitContainer validates Panel2MinSize immediately.
+            const int panel1Min = 700;
+            const int panel2Min = 300;
+
+            if (split.ClientSize.Width < panel1Min + panel2Min + split.SplitterWidth)
+                return;
+
+            split.Panel1MinSize = panel1Min;
+            split.Panel2MinSize = panel2Min;
+
+            var usable = split.ClientSize.Width;
+            var max = usable - split.Panel2MinSize - split.SplitterWidth;
+            var distance = Math.Clamp((int)(usable * 0.62), split.Panel1MinSize, max);
+
+            if (distance >= split.Panel1MinSize && distance <= max)
+                split.SplitterDistance = distance;
+        }
+
+        Shown += (_,_) => BeginInvoke(SetSafeSplitterDistance);
+        SizeChanged += (_,_) => {
+            if (IsHandleCreated)
+                BeginInvoke(SetSafeSplitterDistance);
+        };
         Shown += async (_,_)=>await RefreshAsync();
     }
 
