@@ -3,10 +3,9 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
-    <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>CodeName399.EnvironmentManager</AssemblyName>
     <RootNamespace>CodeName399.EnvironmentManager</RootNamespace>
-    <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
 </Project>

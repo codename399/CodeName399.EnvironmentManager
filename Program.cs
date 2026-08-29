@@ -107,7 +107,15 @@ public sealed class MainForm : Form
             fields[item.Name]=tb;
             var st=new Label { Text="...", AutoSize=true, Anchor=AnchorStyles.Left, Margin=new Padding(4,8,4,4) }; status[item.Name]=st;
             list.Controls.Add(label,0,list.RowCount); list.Controls.Add(tb,1,list.RowCount); list.Controls.Add(st,2,list.RowCount);
-            var reveal=new CheckBox { Text="Show", AutoSize=true, Margin=new Padding(3,6,3,3) }; reveal.Visible=item.Secret; reveal.CheckedChanged += (_,_)=>tb.UseSystemPasswordChar=!reveal.Checked; list.Controls.Add(reveal,3,list.RowCount); list.RowCount++;
+            var rowActions=new FlowLayoutPanel { Dock=DockStyle.Fill, AutoSize=true, WrapContents=false, Margin=new Padding(0) };
+            var save=new Button { Text="Save", AutoSize=true, Height=28, Tag=item, Margin=new Padding(2,3,2,3) };
+            var del=new Button { Text="Delete", AutoSize=true, Height=28, Tag=item, Margin=new Padding(2,3,2,3) };
+            save.Click += async (_,_)=>await SaveOneAsync(item);
+            del.Click += async (_,_)=>await DeleteOneAsync(item);
+            var reveal=new CheckBox { Text="Show", AutoSize=true, Margin=new Padding(5,6,2,3) };
+            reveal.Visible=item.Secret; reveal.CheckedChanged += (_,_)=>tb.UseSystemPasswordChar=!reveal.Checked;
+            rowActions.Controls.Add(save); rowActions.Controls.Add(del); rowActions.Controls.Add(reveal);
+            list.Controls.Add(rowActions,3,list.RowCount); list.RowCount++;
         }
         split.Panel1.Controls.Add(list);
 
@@ -127,6 +135,47 @@ public sealed class MainForm : Form
     string? GetMachine(string n)=>Environment.GetEnvironmentVariable(n,EnvironmentVariableTarget.Machine);
     void SetMachine(string n,string v)=>Environment.SetEnvironmentVariable(n,v,EnvironmentVariableTarget.Machine);
     void WriteLog(string s,bool error=false){if(InvokeRequired){BeginInvoke(()=>WriteLog(s,error));return;} log.AppendText($"{DateTime.Now:HH:mm:ss} {s}{Environment.NewLine}");log.SelectionStart=log.TextLength;log.ScrollToCaret();}
+
+
+
+    async Task SaveOneAsync(EnvItem item)
+    {
+        try
+        {
+            var value = fields[item.Name].Text.Trim();
+            if (item.Required && string.IsNullOrWhiteSpace(value))
+            {
+                WriteLog($"SKIP    {item.Name} - empty required value", true);
+                MessageBox.Show($"Enter a value for {item.Label}.", "Save Variable", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            SetMachine(item.Name, value);
+            WriteLog($"SAVED   {item.Name}");
+            await RefreshAsync();
+        }
+        catch(Exception ex)
+        {
+            WriteLog($"ERROR   {item.Name}: {ex.Message}", true);
+            MessageBox.Show(ex.Message, "Save Variable Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    async Task DeleteOneAsync(EnvItem item)
+    {
+        if(MessageBox.Show($"Delete the machine-level environment variable '{item.Name}'?\n\nThis cannot be undone from the application.",
+            "Confirm Delete", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
+        try
+        {
+            Environment.SetEnvironmentVariable(item.Name, null, EnvironmentVariableTarget.Machine);
+            WriteLog($"DELETED {item.Name}");
+            await RefreshAsync();
+        }
+        catch(Exception ex)
+        {
+            WriteLog($"ERROR   deleting {item.Name}: {ex.Message}", true);
+            MessageBox.Show(ex.Message, "Delete Variable Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
 
     async Task RefreshAsync()
     {
