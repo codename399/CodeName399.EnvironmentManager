@@ -86,46 +86,120 @@ public sealed class MainForm : Form
         header.Controls.Add(new Label { Text="Machine-level environment variables • existing values are preserved • secret fields are masked", AutoSize=true });
         summary.Text = "Loading..."; summary.AutoSize=true; header.Controls.Add(summary);
 
-        var split = new SplitContainer { Dock=DockStyle.Fill, SplitterDistance=760, Padding=new Padding(10) };
-        var list = new TableLayoutPanel { Dock=DockStyle.Fill, AutoScroll=true, ColumnCount=4, Padding=new Padding(4), GrowStyle=TableLayoutPanelGrowStyle.AddRows };
-        list.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,170));
+        var split = new SplitContainer {
+            Dock=DockStyle.Fill,
+            Orientation=Orientation.Vertical,
+            SplitterDistance=980,
+            IsSplitterFixed=false,
+            Panel1MinSize=780,
+            Panel2MinSize=320,
+            Padding=new Padding(10)
+        };
+
+        var listHost = new Panel { Dock=DockStyle.Fill, AutoScroll=true, Padding=new Padding(0,0,8,0) };
+        var list = new TableLayoutPanel {
+            Dock=DockStyle.Top,
+            AutoSize=true,
+            AutoSizeMode=AutoSizeMode.GrowAndShrink,
+            ColumnCount=6,
+            Padding=new Padding(4),
+            GrowStyle=TableLayoutPanelGrowStyle.AddRows
+        };
+        list.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,190));
         list.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));
-        list.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,95));
-        list.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,85));
+        list.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,90));
+        list.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,88));
+        list.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,96));
+        list.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,86));
 
         string? lastCategory=null;
+
+        list.RowStyles.Add(new RowStyle(SizeType.Absolute,34));
+        list.Controls.Add(new Label { Text="Variable", Font=new Font(Font,FontStyle.Bold), Dock=DockStyle.Fill, Padding=new Padding(4,8,0,0) },0,list.RowCount);
+        list.Controls.Add(new Label { Text="Value", Font=new Font(Font,FontStyle.Bold), Dock=DockStyle.Fill, Padding=new Padding(4,8,0,0) },1,list.RowCount);
+        list.Controls.Add(new Label { Text="Status", Font=new Font(Font,FontStyle.Bold), Dock=DockStyle.Fill, Padding=new Padding(4,8,0,0) },2,list.RowCount);
+        list.Controls.Add(new Label { Text="Save", Font=new Font(Font,FontStyle.Bold), Dock=DockStyle.Fill, Padding=new Padding(4,8,0,0) },3,list.RowCount);
+        list.Controls.Add(new Label { Text="Delete", Font=new Font(Font,FontStyle.Bold), Dock=DockStyle.Fill, Padding=new Padding(4,8,0,0) },4,list.RowCount);
+        list.Controls.Add(new Label { Text="Show", Font=new Font(Font,FontStyle.Bold), Dock=DockStyle.Fill, Padding=new Padding(4,8,0,0) },5,list.RowCount);
+        list.RowCount++;
+
         foreach(var item in items)
         {
             if(item.Category != lastCategory)
             {
                 list.RowStyles.Add(new RowStyle(SizeType.Absolute,30));
                 var cat = new Label { Text=item.Category, Font=new Font(Font,FontStyle.Bold), AutoSize=true, Dock=DockStyle.Fill, Padding=new Padding(3,7,0,0) };
-                list.Controls.Add(cat,0,list.RowCount); list.SetColumnSpan(cat,4); list.RowCount++; lastCategory=item.Category;
+                list.Controls.Add(cat,0,list.RowCount);
+                list.SetColumnSpan(cat,6);
+                list.RowCount++;
+                lastCategory=item.Category;
             }
+
+            var row = list.RowCount;
             var label=new Label { Text=item.Label, AutoSize=true, Anchor=AnchorStyles.Left, Margin=new Padding(4,8,4,4) };
             var tb=new TextBox { Dock=DockStyle.Fill, Margin=new Padding(3,4,3,4), UseSystemPasswordChar=item.Secret, Tag=item };
             fields[item.Name]=tb;
-            var st=new Label { Text="...", AutoSize=true, Anchor=AnchorStyles.Left, Margin=new Padding(4,8,4,4) }; status[item.Name]=st;
-            list.Controls.Add(label,0,list.RowCount); list.Controls.Add(tb,1,list.RowCount); list.Controls.Add(st,2,list.RowCount);
-            var rowActions=new FlowLayoutPanel { Dock=DockStyle.Fill, AutoSize=true, WrapContents=false, Margin=new Padding(0) };
-            var save=new Button { Text="Save", AutoSize=true, Height=28, Tag=item, Margin=new Padding(2,3,2,3) };
-            var del=new Button { Text="Delete", AutoSize=true, Height=28, Tag=item, Margin=new Padding(2,3,2,3) };
+            var st=new Label { Text="...", AutoSize=true, Anchor=AnchorStyles.Left, Margin=new Padding(4,8,4,4) };
+            status[item.Name]=st;
+
+            var save=new Button { Text="Save", Dock=DockStyle.Fill, Height=30, Tag=item, Margin=new Padding(3,3,3,3) };
+            var del=new Button { Text="Delete", Dock=DockStyle.Fill, Height=30, Tag=item, Margin=new Padding(3,3,3,3) };
             save.Click += async (_,_)=>await SaveOneAsync(item);
             del.Click += async (_,_)=>await DeleteOneAsync(item);
-            var reveal=new CheckBox { Text="Show", AutoSize=true, Margin=new Padding(5,6,2,3) };
-            reveal.Visible=item.Secret; reveal.CheckedChanged += (_,_)=>tb.UseSystemPasswordChar=!reveal.Checked;
-            rowActions.Controls.Add(save); rowActions.Controls.Add(del); rowActions.Controls.Add(reveal);
-            list.Controls.Add(rowActions,3,list.RowCount); list.RowCount++;
-        }
-        split.Panel1.Controls.Add(list);
 
-        var right=new TableLayoutPanel { Dock=DockStyle.Fill, ColumnCount=1, RowCount=3 };
-        right.RowStyles.Add(new RowStyle(SizeType.Absolute,52)); right.RowStyles.Add(new RowStyle(SizeType.Percent,100)); right.RowStyles.Add(new RowStyle(SizeType.Absolute,50));
-        var actions=new FlowLayoutPanel { Dock=DockStyle.Fill, WrapContents=true };
-        ConfigureButton(setMissing,"Set Missing",async (_,_)=>await SetMissingAsync()); ConfigureButton(saveAll,"Save All",async (_,_)=>await SaveAllAsync()); ConfigureButton(refresh,"Refresh",async (_,_)=>await RefreshAsync());
-        actions.Controls.Add(setMissing); actions.Controls.Add(saveAll); actions.Controls.Add(refresh); right.Controls.Add(actions,0,0);
-        log.Dock=DockStyle.Fill; log.ReadOnly=true; log.BackColor=Color.FromArgb(20,22,26); log.ForeColor=Color.Gainsboro; log.Font=new Font("Consolas",9); right.Controls.Add(log,0,1);
-        var note=new Label { Text="Run elevated. Secrets are never written to appsettings.json. Restart Visual Studio/Rider and the APIs after changing variables.", AutoSize=true, Dock=DockStyle.Fill, Padding=new Padding(5,10,5,0) }; right.Controls.Add(note,0,2);
+            var reveal=new CheckBox {
+                Text="Show",
+                AutoSize=true,
+                Anchor=AnchorStyles.Left,
+                Margin=new Padding(4,6,2,3),
+                Enabled=item.Secret
+            };
+            reveal.CheckedChanged += (_,_)=> {
+                if(item.Secret) tb.UseSystemPasswordChar=!reveal.Checked;
+            };
+
+            list.Controls.Add(label,0,row);
+            list.Controls.Add(tb,1,row);
+            list.Controls.Add(st,2,row);
+            list.Controls.Add(save,3,row);
+            list.Controls.Add(del,4,row);
+            list.Controls.Add(reveal,5,row);
+            list.RowCount++;
+        }
+
+        listHost.Controls.Add(list);
+        split.Panel1.Controls.Add(listHost);
+
+        var right=new TableLayoutPanel {
+            Dock=DockStyle.Fill,
+            ColumnCount=1,
+            RowCount=2,
+            Padding=new Padding(8,0,0,0)
+        };
+        right.RowStyles.Add(new RowStyle(SizeType.Absolute,52));
+        right.RowStyles.Add(new RowStyle(SizeType.Percent,100));
+
+        var actions=new FlowLayoutPanel {
+            Dock=DockStyle.Fill,
+            WrapContents=true,
+            AutoScroll=true,
+            Padding=new Padding(0,4,0,4)
+        };
+        ConfigureButton(setMissing,"Set Missing",async (_,_)=>await SetMissingAsync());
+        ConfigureButton(saveAll,"Save All",async (_,_)=>await SaveAllAsync());
+        ConfigureButton(refresh,"Refresh",async (_,_)=>await RefreshAsync());
+        actions.Controls.Add(setMissing);
+        actions.Controls.Add(saveAll);
+        actions.Controls.Add(refresh);
+        right.Controls.Add(actions,0,0);
+
+        log.Dock=DockStyle.Fill;
+        log.ReadOnly=true;
+        log.BackColor=Color.FromArgb(20,22,26);
+        log.ForeColor=Color.Gainsboro;
+        log.Font=new Font("Consolas",9);
+        right.Controls.Add(log,0,1);
+
         split.Panel2.Controls.Add(right);
         Controls.Add(split); Controls.Add(header);
         Shown += async (_,_)=>await RefreshAsync();
