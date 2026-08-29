@@ -21,6 +21,7 @@ public sealed class MainForm : Form
     readonly List<EnvItem> items = new()
     {
         new("CODENAME399_LOG_DIRECTORY", "Log directory", "General"),
+        new("OPENAI_API_KEY", "OpenAI API key", "OpenAI", Secret:true),
         new("CODENAME399_MongoDatabaseSetting__LocalConnectionString", "MongoDB connection string", "MongoDB", Secret:true),
         new("CODENAME399_PasswordBasedAuthenticationConfig__SecretKey", "JWT secret key", "JWT", Secret:true),
         new("CODENAME399_AngelOne__ApiKey", "Angel One API key", "Angel One", Secret:true),
